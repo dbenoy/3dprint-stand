@@ -37,6 +37,7 @@ module stand(width=stand_width, depth=bottom_depth, height=backrest_height, angl
         // Stand
         hull() {
             translate([join-(thickness/2),(thickness/2),0]) circle(d=thickness);
+            translate([max(join-thickness, -thickness/2),(thickness/2),0]) circle(d=thickness);
             translate([sin(angle) * base - (thickness/2),cos(angle) * base + (thickness/2),0]) circle(d=thickness);
         }
         // Holder
