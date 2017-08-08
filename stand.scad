@@ -15,7 +15,7 @@ lean_angle = 20;
 // The distance between the points of contact when the stand is leaned back
 base_distance = 100;
 
-// The height at which the stand part intersects with the backrest
+// The height at which the prop intersects with the backrest
 join_height = 100;
 
 // The height of the lip
@@ -24,31 +24,70 @@ lip_height = 10;
 // The thickness of all parts of the stand
 structure_thickness = 15;
 
+// Whether to place an edge holder on the side(s) of the stand
+edge_holder = 0; // [0:None, 1:Left, 2:Right, 3:Both]
+
 //CUSTOMIZER VARIABLES END
 
-module stand(width=stand_width, depth=bottom_depth, height=backrest_height, angle=lean_angle, base=base_distance, join=join_height, lip=lip_height, thickness=structure_thickness) {
-    linear_extrude(height = width, center = true)
-    union() {
-        // Backrest
-        hull() {
-            translate([height-(thickness/2),(thickness/2),0]) circle(d=thickness);
-            translate([-(thickness/2),(thickness/2),0]) circle(d=thickness);
+module stand(width=stand_width, depth=bottom_depth, height=backrest_height, angle=lean_angle, base=base_distance, join=join_height, lip=lip_height, thickness=structure_thickness, edge=edge_holder) {
+    backrest_top = [-(thickness/2),height-(thickness/2),0];
+    backrest_bottom = [-(thickness/2),-(thickness/2),0];
+    holder_front = [depth+(thickness/2),-(thickness/2),0];
+    lip_top = [depth+(thickness/2),lip -(thickness/2),0];
+    prop_join = [-(thickness/2),join-(thickness/2),0];
+    prop_bottom = [-cos(angle) * base + (thickness/2),sin(angle) * base - (thickness/2),0];
+    
+    // Add some width to accomodate the edges, if included
+    total_width = width + ((edge == 1 || edge == 3) ? thickness : 0) + ((edge == 2 || edge == 3) ? thickness : 0);
+    
+    // Flip the whole thing over for easier printing if there's a holder on the left side
+    rotate_all = edge == 1 ? [0, 180, 0] : [0, 0, 0];
+    translate_all = edge == 1 ? [0, 0, total_width] : [0, 0, 0];
+
+    translate(translate_all) rotate(rotate_all) {
+        linear_extrude(height = total_width)
+        {
+            // Backrest
+            hull() {
+                translate(backrest_top) circle(d=thickness);
+                translate(backrest_bottom) circle(d=thickness);
+            }
+            // Stand
+            hull() {
+                translate(prop_join) circle(d=thickness);
+                translate([prop_join[0],max(prop_join[1]-thickness/2, -thickness/2),prop_join[2]]) circle(d=thickness);
+                translate(prop_bottom) circle(d=thickness);
+            }
+            // Holder
+            hull() {
+                translate(backrest_bottom) circle(d=thickness);
+                translate(holder_front) circle(d=thickness);
+            }
+            // Lip
+            hull() {
+                translate(holder_front) circle(d=thickness);
+                translate(lip_top) circle(d=thickness);
+            }
         }
-        // Stand
-        hull() {
-            translate([join-(thickness/2),(thickness/2),0]) circle(d=thickness);
-            translate([max(join-thickness, -thickness/2),(thickness/2),0]) circle(d=thickness);
-            translate([sin(angle) * base - (thickness/2),cos(angle) * base + (thickness/2),0]) circle(d=thickness);
+        // Left edge holder
+        if (edge == 1 || edge == 3) {
+            translate([0, 0, total_width - thickness]) linear_extrude(height = thickness)
+            hull() {
+                translate(backrest_top) circle(d=thickness);
+                translate(backrest_bottom) circle(d=thickness);
+                translate(holder_front) circle(d=thickness);
+                translate(lip_top) circle(d=thickness);
+            }
         }
-        // Holder
-        hull() {
-            translate([-(thickness/2),-depth-(thickness/2),0]) circle(d=thickness);
-            translate([-(thickness/2),(thickness/2),0])circle(d=thickness);
-        }
-        // Lip
-        hull() {
-            translate([-(thickness/2),-depth-(thickness/2),0]) circle(d=thickness);
-            translate([lip -(thickness/2),-depth-(thickness/2),0]) circle(d=thickness);
+        // Right edge holder
+        if (edge == 2 || edge == 3) {
+            linear_extrude(height = thickness)
+            hull() {
+                translate(backrest_top) circle(d=thickness);
+                translate(backrest_bottom) circle(d=thickness);
+                translate(holder_front) circle(d=thickness);
+                translate(lip_top) circle(d=thickness);
+	        }
         }
     }
 }
